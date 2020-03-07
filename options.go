@@ -9,6 +9,11 @@ type Credintial struct {
 	PasswordFromFile string
 }
 
+var DefaultOptions = []Option{
+	WithDirect(false),
+	WithTriggers(),
+}
+
 func WithCredintial(c Credintial) Option {
 	return func(m *Manager) {
 		m.credintial = c
@@ -45,9 +50,4 @@ func WithCommandPath(s string) Option {
 	return func(m *Manager) {
 		m.command = s
 	}
-}
-
-var DefaultOptions = []Option{
-	WithDirect(false),
-	WithTriggers(),
 }
