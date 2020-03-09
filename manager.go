@@ -2,9 +2,11 @@ package fb_nbackup
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -23,6 +25,10 @@ type Manager struct {
 }
 
 type executer func(cmd string, args ...string) ([]byte, error)
+
+var _ Backuper = (*Manager)(nil)
+
+//TODO: Stderr -> error
 
 func NewManager(opts ...Option) *Manager {
 	manager := &Manager{}
@@ -66,4 +72,39 @@ func (m *Manager) Version() (string, error) {
 		return match, nil
 	}
 	return string(data), nil
+}
+
+func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, error) {
+	commands := make([]string, 0, 3)
+	if returnSize {
+		commands = append(commands, "-SIZE")
+	}
+	commands = append(commands, "-LOCK", db)
+
+	cmd, args := m.buildCmd(commands...)
+	data, err := m.exec(cmd, args...)
+	if err != nil {
+		return 0, err
+	}
+	if !returnSize {
+		return 0, nil
+	}
+
+	sData := strings.TrimSpace(string(data))
+
+	size, err := strconv.Atoi(sData)
+	if err != nil {
+		return -1, err
+	}
+	return int64(size), nil
+}
+
+func (m *Manager) Unlock(ctx context.Context, db string) error {
+	cmd, args := m.buildCmd("-UNLOCK", db)
+	_, err := m.exec(cmd, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
