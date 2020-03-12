@@ -24,7 +24,7 @@ type Manager struct {
 	executer executer
 }
 
-type executer func(cmd string, args ...string) ([]byte, error)
+type executer func(context.Context, string, ...string) ([]byte, error)
 
 var _ Backuper = (*Manager)(nil)
 
@@ -47,7 +47,8 @@ func (m *Manager) buildCmd(args ...string) (string, []string) {
 	return cmdParts[0], append(cmdParts[1:], args...)
 }
 
-func (m *Manager) exec(commandLine string, args ...string) ([]byte, error) {
+func (m *Manager) exec(ctx context.Context, commandLine string,
+	args ...string) ([]byte, error) {
 	cmd := exec.Command(commandLine, args...)
 	var bufOut, bufErr bytes.Buffer
 	cmd.Stderr = &bufErr
@@ -62,9 +63,9 @@ func (m *Manager) exec(commandLine string, args ...string) ([]byte, error) {
 
 var re = regexp.MustCompile(`(?m)V(\d+\.)(\d+\.)(\d+\.)(\d+)`)
 
-func (m *Manager) Version() (string, error) {
+func (m *Manager) Version(ctx context.Context) (string, error) {
 	cmd, args := m.buildCmd("-Z")
-	data, err := m.exec(cmd, args...)
+	data, err := m.exec(ctx, cmd, args...)
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +83,7 @@ func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, 
 	commands = append(commands, "-LOCK", db)
 
 	cmd, args := m.buildCmd(commands...)
-	data, err := m.exec(cmd, args...)
+	data, err := m.exec(ctx, cmd, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -101,10 +102,18 @@ func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, 
 
 func (m *Manager) Unlock(ctx context.Context, db string) error {
 	cmd, args := m.buildCmd("-UNLOCK", db)
-	_, err := m.exec(cmd, args...)
+	_, err := m.exec(ctx, cmd, args...)
 	if err != nil {
 		return err
 	}
 	return nil
+}
 
+func (m *Manager) Fixup(ctx context.Context, db string) error {
+	cmd, args := m.buildCmd("-FIXUP", db)
+	_, err := m.exec(ctx, cmd, args...)
+	if err != nil {
+		return err
+	}
+	return nil
 }

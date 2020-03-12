@@ -5,6 +5,7 @@ import (
 	nbackup "fb-nbackup"
 	"fmt"
 	"os"
+	"time"
 )
 
 func main() {
@@ -12,14 +13,17 @@ func main() {
 		nbackup.WithCommandPath("/usr/bin/docker exec firebird /usr/local/firebird/bin/nbackup"),
 	//	nbackup.WithCommandPath("ls -l"),
 	)
-	version, err := manager.Version()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	version, err := manager.Version(ctx)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 	fmt.Println("nbackup version:", version)
 
-	ctx := context.Background()
 	dsn := "NBEXAMPLE"
 
 	if err := manager.Unlock(ctx, dsn); err != nil {
@@ -38,4 +42,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := manager.Fixup(ctx, dsn); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
