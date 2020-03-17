@@ -3,6 +3,7 @@ package fb_nbackup
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"regexp"
@@ -13,6 +14,8 @@ import (
 const (
 	defaultCommand = "nbackup"
 )
+
+var ErrUnknowArgumentType = errors.New("unknown argument type")
 
 type Manager struct {
 	command           string
@@ -39,12 +42,33 @@ func NewManager(opts ...Option) *Manager {
 	return manager
 }
 
-func (m *Manager) buildCmd(args ...string) (string, []string) {
+func parseArguments(args ...interface{}) []string {
+	parseArg := func(arg interface{}) []string {
+		switch v := arg.(type) {
+		case string:
+			return []string{v}
+		case []string:
+			return v
+		case Argument:
+			return v.ToArgument()
+		default:
+			panic(fmt.Errorf("%w: %T", ErrUnknowArgumentType, arg))
+		}
+	}
+	result := make([]string, 0)
+	for _, arg := range args {
+		result = append(result, parseArg(arg)...)
+	}
+	return result
+}
+
+func (m *Manager) buildCmd(args ...interface{}) (string, []string) {
+	argsParsed := parseArguments(args...)
 	if len(m.command) == 0 {
-		return defaultCommand, args
+		return defaultCommand, argsParsed
 	}
 	cmdParts := strings.Split(m.command, " ")
-	return cmdParts[0], append(cmdParts[1:], args...)
+	return cmdParts[0], append(cmdParts[1:], argsParsed...)
 }
 
 func (m *Manager) exec(ctx context.Context, commandLine string,
@@ -76,7 +100,7 @@ func (m *Manager) Version(ctx context.Context) (string, error) {
 }
 
 func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, error) {
-	commands := make([]string, 0, 3)
+	commands := make([]interface{}, 0, 3)
 	if returnSize {
 		commands = append(commands, "-SIZE")
 	}
@@ -111,6 +135,24 @@ func (m *Manager) Unlock(ctx context.Context, db string) error {
 
 func (m *Manager) Fixup(ctx context.Context, db string) error {
 	cmd, args := m.buildCmd("-FIXUP", db)
+	_, err := m.exec(ctx, cmd, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) Backup(ctx context.Context, level Level, db string, file string) error {
+	cmd, args := m.buildCmd("-BACKUP", level, db, file)
+	_, err := m.exec(ctx, cmd, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) Restore(ctx context.Context, db string, files ...string) error {
+	cmd, args := m.buildCmd("-RESTORE", db, files)
 	_, err := m.exec(ctx, cmd, args...)
 	if err != nil {
 		return err
