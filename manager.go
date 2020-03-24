@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -153,6 +154,16 @@ func (m *Manager) Backup(ctx context.Context, level Level, db string, file strin
 
 func (m *Manager) Restore(ctx context.Context, db string, files ...string) error {
 	cmd, args := m.buildCmd("-RESTORE", db, files)
+	_, err := m.exec(ctx, cmd, args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) BackupTo(ctx context.Context, level int, db string, w io.Writer) error {
+	//FIXME: catch stdout
+	cmd, args := m.buildCmd("-BACKUP", db, "stdout")
 	_, err := m.exec(ctx, cmd, args...)
 	if err != nil {
 		return err

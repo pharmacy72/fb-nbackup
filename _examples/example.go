@@ -11,7 +11,6 @@ import (
 func main() {
 	manager := nbackup.NewManager(
 		nbackup.WithCommandPath("/usr/bin/docker exec firebird /usr/local/firebird/bin/nbackup"),
-	//	nbackup.WithCommandPath("ls -l"),
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)

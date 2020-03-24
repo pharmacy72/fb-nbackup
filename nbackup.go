@@ -2,6 +2,7 @@ package fb_nbackup
 
 import (
 	"context"
+	"io"
 	"strconv"
 )
 
@@ -13,8 +14,8 @@ type Backuper interface {
 	Unlock(ctx context.Context, db string) error
 	Fixup(ctx context.Context, db string) error
 	Backup(ctx context.Context, level Level, db string, file string) error
-	//BackupTo(ctx context.Context, level int, db string, w io.Writer)
-	//Restore(ctx context.Context, db string, files ...string) error
+	BackupTo(ctx context.Context, level int, db string, w io.Writer) error
+	Restore(ctx context.Context, db string, files ...string) error
 }
 
 type Argument interface {
