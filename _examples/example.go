@@ -16,13 +16,6 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	version, err := manager.Version(ctx)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	fmt.Println("nbackup version:", version)
-
 	dsn := "NBEXAMPLE"
 
 	if err := manager.Unlock(ctx, dsn); err != nil {

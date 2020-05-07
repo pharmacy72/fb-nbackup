@@ -39,7 +39,7 @@ var _ Backuper = (*Manager)(nil)
 func NewManager(opts ...Option) *Manager {
 	manager := &Manager{}
 	manager.executer = manager.exec
-	for _, option := range opts {
+	for _, option := range append(DefaultOptions, opts...) {
 		option(manager)
 	}
 	return manager
@@ -82,7 +82,6 @@ func (m *Manager) exec(ctx context.Context, commandLine string,
 	cmd.Stdout = &bufOut
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println(bufErr.String())
 		return nil, err
 	}
 	return bytes.Join([][]byte{bufOut.Bytes(), bufErr.Bytes()}, nil), nil
@@ -93,6 +92,8 @@ var (
 	reVersion = regexp.MustCompile(`(?m)V(\d+\.)(\d+\.)(\d+\.)(\d+)`)
 )
 
+// Returns the nbachkup version.
+// Will return an empty string if no version is found.
 func (m *Manager) Version(ctx context.Context) (string, error) {
 	cmd, args := m.buildCmd("-Z")
 	data, err := m.exec(ctx, cmd, args...)
@@ -102,7 +103,7 @@ func (m *Manager) Version(ctx context.Context) (string, error) {
 	for _, match := range reVersion.FindAllString(string(data), -1) {
 		return match, nil
 	}
-	return string(data), nil
+	return "", nil
 }
 
 func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, error) {
