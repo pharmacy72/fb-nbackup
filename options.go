@@ -4,11 +4,25 @@ import "os"
 
 type Option func(m *Manager)
 
-type Credintial struct {
+type Credential struct {
 	User             string
 	Role             string
 	Password         string
 	PasswordFromFile string
+}
+
+func (c *Credential) ToArgument() []string {
+	var args []string
+	addArgument := func(name, arg string) {
+		if arg != "" {
+			args = append(args, name, arg)
+		}
+	}
+	addArgument("-USER", c.User)
+	addArgument("-ROLE", c.Role)
+	addArgument("-PASSWORD", c.Password)
+	addArgument("-FETCH_PASSWORD", c.PasswordFromFile)
+	return args
 }
 
 var DefaultOptions = []Option{
@@ -16,7 +30,7 @@ var DefaultOptions = []Option{
 	WithTriggers(),
 }
 
-func WithCredential(c Credintial) Option {
+func WithCredential(c *Credential) Option {
 	return func(m *Manager) {
 		m.credential = c
 	}

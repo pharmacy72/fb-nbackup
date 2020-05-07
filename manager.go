@@ -23,7 +23,7 @@ type Manager struct {
 	decompressCommand string
 	direct            bool
 	noDBTriggers      bool
-	credential        Credintial
+	credential        *Credential
 
 	executer  executer
 	output    io.Writer
@@ -66,7 +66,11 @@ func parseArguments(args ...interface{}) []string {
 }
 
 func (m *Manager) buildCmd(args ...interface{}) (string, []string) {
+	if m.credential != nil {
+		args = append([]interface{}{m.credential}, args...)
+	}
 	argsParsed := parseArguments(args...)
+
 	if len(m.command) == 0 {
 		return defaultCommand, argsParsed
 	}
