@@ -16,16 +16,18 @@ const (
 	defaultCommand = "nbackup"
 )
 
-var ErrUnknowArgumentType = errors.New("unknown argument type")
+var ErrUnknownArgumentType = errors.New("unknown argument type")
 
 type Manager struct {
 	command           string
 	decompressCommand string
 	direct            bool
 	noDBTriggers      bool
-	credintial        Credintial
+	credential        Credintial
 
-	executer executer
+	executer  executer
+	output    io.Writer
+	outputErr io.Writer
 }
 
 type executer func(context.Context, string, ...string) ([]byte, error)
@@ -53,7 +55,7 @@ func parseArguments(args ...interface{}) []string {
 		case Argument:
 			return v.ToArgument()
 		default:
-			panic(fmt.Errorf("%w: %T", ErrUnknowArgumentType, arg))
+			panic(fmt.Errorf("%w: %T", ErrUnknownArgumentType, arg))
 		}
 	}
 	result := make([]string, 0)
@@ -86,7 +88,10 @@ func (m *Manager) exec(ctx context.Context, commandLine string,
 	return bytes.Join([][]byte{bufOut.Bytes(), bufErr.Bytes()}, nil), nil
 }
 
-var re = regexp.MustCompile(`(?m)V(\d+\.)(\d+\.)(\d+\.)(\d+)`)
+// Regular expressions.
+var (
+	reVersion = regexp.MustCompile(`(?m)V(\d+\.)(\d+\.)(\d+\.)(\d+)`)
+)
 
 func (m *Manager) Version(ctx context.Context) (string, error) {
 	cmd, args := m.buildCmd("-Z")
@@ -94,7 +99,7 @@ func (m *Manager) Version(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	for _, match := range re.FindAllString(string(data), -1) {
+	for _, match := range reVersion.FindAllString(string(data), -1) {
 		return match, nil
 	}
 	return string(data), nil

@@ -1,5 +1,7 @@
 package fb_nbackup
 
+import "os"
+
 type Option func(m *Manager)
 
 type Credintial struct {
@@ -14,9 +16,16 @@ var DefaultOptions = []Option{
 	WithTriggers(),
 }
 
-func WithCredintial(c Credintial) Option {
+func WithCredential(c Credintial) Option {
 	return func(m *Manager) {
-		m.credintial = c
+		m.credential = c
+	}
+}
+
+func WithStdOutput() Option {
+	return func(m *Manager) {
+		m.output = os.Stdout
+		m.outputErr = os.Stderr
 	}
 }
 

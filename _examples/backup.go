@@ -9,8 +9,6 @@ import (
 )
 
 func main() {
-	/*
-	 */
 	manager := nbackup.NewManager(
 		nbackup.WithCommandPath("/usr/bin/docker exec -w /backup firebird /usr/local/firebird/bin/nbackup"),
 	)
