@@ -80,7 +80,7 @@ func (m *Manager) buildCmd(args ...interface{}) (string, []string) {
 
 func (m *Manager) exec(ctx context.Context, commandLine string,
 	args ...string) ([]byte, error) {
-	cmd := exec.Command(commandLine, args...)
+	cmd := exec.CommandContext(ctx, commandLine, args...)
 	var bufOut, bufErr bytes.Buffer
 	cmd.Stderr = &bufErr
 	cmd.Stdout = &bufOut
@@ -89,6 +89,19 @@ func (m *Manager) exec(ctx context.Context, commandLine string,
 		return nil, err
 	}
 	return bytes.Join([][]byte{bufOut.Bytes(), bufErr.Bytes()}, nil), nil
+}
+
+func (m *Manager) execWriter(ctx context.Context, commandLine string, w io.Writer,
+	args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, commandLine, args...)
+	var bufErr bytes.Buffer
+	cmd.Stderr = &bufErr
+	cmd.Stdout = w
+	err := cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+	return bytes.Join([][]byte{bufErr.Bytes()}, nil), nil
 }
 
 // Regular expressions.
@@ -171,10 +184,9 @@ func (m *Manager) Restore(ctx context.Context, db string, files ...string) error
 	return nil
 }
 
-func (m *Manager) BackupTo(ctx context.Context, level int, db string, w io.Writer) error {
-	//FIXME: catch stdout
-	cmd, args := m.buildCmd("-BACKUP", db, "stdout")
-	_, err := m.exec(ctx, cmd, args...)
+func (m *Manager) BackupTo(ctx context.Context, level Level, db string, w io.Writer) error {
+	cmd, args := m.buildCmd("-BACKUP", level, db, "stdout")
+	_, err := m.execWriter(ctx, cmd, w, args...)
 	if err != nil {
 		return err
 	}
