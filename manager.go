@@ -16,6 +16,7 @@ const (
 	defaultCommand = "nbackup"
 )
 
+// Errors
 var ErrUnknownArgumentType = errors.New("unknown argument type")
 
 type Manager struct {
@@ -24,17 +25,14 @@ type Manager struct {
 	direct            bool
 	noDBTriggers      bool
 	credential        *Credential
-
-	executer  executer
-	output    io.Writer
-	outputErr io.Writer
+	executer          executer
+	output            io.Writer
+	outputErr         io.Writer
 }
 
 type executer func(context.Context, string, ...string) ([]byte, error)
 
 var _ Backuper = (*Manager)(nil)
-
-//TODO: Stderr -> error
 
 func NewManager(opts ...Option) *Manager {
 	manager := &Manager{}

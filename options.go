@@ -1,9 +1,13 @@
 package fb_nbackup
 
-import "os"
+import (
+	"io"
+)
 
+// Options is the type for NBACKUP options.
 type Option func(m *Manager)
 
+// Credential used as an option to run nbackup from the user
 type Credential struct {
 	User             string
 	Role             string
@@ -11,6 +15,7 @@ type Credential struct {
 	PasswordFromFile string
 }
 
+// ToArgument implements Argument
 func (c *Credential) ToArgument() []string {
 	var args []string
 	addArgument := func(name, arg string) {
@@ -25,21 +30,30 @@ func (c *Credential) ToArgument() []string {
 	return args
 }
 
+// Nbackup default options
 var DefaultOptions = []Option{
 	WithDirect(false),
 	WithTriggers(),
 }
 
+// WithCredential run a command with user privileges
 func WithCredential(c *Credential) Option {
 	return func(m *Manager) {
 		m.credential = c
 	}
 }
 
-func WithStdOutput() Option {
+// WithOutWriter run command with "out" output stream
+func WithOutWriter(out io.Writer) Option {
 	return func(m *Manager) {
-		m.output = os.Stdout
-		m.outputErr = os.Stderr
+		m.output = out
+	}
+}
+
+// WithOutWriter run command with "out" error output stream
+func WithErrWriter(out io.Writer) Option {
+	return func(m *Manager) {
+		m.outputErr = out
 	}
 }
 
@@ -57,18 +71,21 @@ func WithDirect(use bool) Option {
 	}
 }
 
+// WithoutTriggers Do not run databases triggers
 func WithoutTriggers() Option {
 	return func(m *Manager) {
 		m.noDBTriggers = true
 	}
 }
 
+// WithTriggers Run databases triggers
 func WithTriggers() Option {
 	return func(m *Manager) {
 		m.noDBTriggers = false
 	}
 }
 
+// WithCommandPath use alternative startup command nbackup
 func WithCommandPath(s string) Option {
 	return func(m *Manager) {
 		m.command = s
