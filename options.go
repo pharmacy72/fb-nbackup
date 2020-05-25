@@ -2,6 +2,7 @@ package fb_nbackup
 
 import (
 	"io"
+	"os"
 )
 
 // Options is the type for NBACKUP options.
@@ -34,6 +35,7 @@ func (c *Credential) ToArgument() []string {
 var DefaultOptions = []Option{
 	WithDirect(false),
 	WithTriggers(),
+	WithWriter(os.Stdout),
 }
 
 // WithCredential run a command with user privileges
@@ -43,17 +45,10 @@ func WithCredential(c *Credential) Option {
 	}
 }
 
-// WithOutWriter run command with "out" output stream
-func WithOutWriter(out io.Writer) Option {
+// WithWriter  run command with "out" output stream
+func WithWriter(out io.Writer) Option {
 	return func(m *Manager) {
 		m.output = out
-	}
-}
-
-// WithOutWriter run command with "out" error output stream
-func WithErrWriter(out io.Writer) Option {
-	return func(m *Manager) {
-		m.outputErr = out
 	}
 }
 

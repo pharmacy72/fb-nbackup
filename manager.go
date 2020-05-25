@@ -30,7 +30,7 @@ type Manager struct {
 	outputErr         io.Writer
 }
 
-type executer func(context.Context, string, ...string) ([]byte, error)
+type executer func(context.Context, string, ...string) error
 
 var _ Backuper = (*Manager)(nil)
 
@@ -77,29 +77,34 @@ func (m *Manager) buildCmd(args ...interface{}) (string, []string) {
 }
 
 func (m *Manager) exec(ctx context.Context, commandLine string,
-	args ...string) ([]byte, error) {
+	args ...string) error {
 	cmd := exec.CommandContext(ctx, commandLine, args...)
-	var bufOut, bufErr bytes.Buffer
-	cmd.Stderr = &bufErr
-	cmd.Stdout = &bufOut
+	m.setWriter(cmd)
 	err := cmd.Run()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return bytes.Join([][]byte{bufOut.Bytes(), bufErr.Bytes()}, nil), nil
+	return nil
 }
 
 func (m *Manager) execWriter(ctx context.Context, commandLine string, w io.Writer,
-	args ...string) ([]byte, error) {
+	args ...string) error {
 	cmd := exec.CommandContext(ctx, commandLine, args...)
-	var bufErr bytes.Buffer
-	cmd.Stderr = &bufErr
 	cmd.Stdout = w
+	cmd.Stderr = w
 	err := cmd.Run()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return bytes.Join([][]byte{bufErr.Bytes()}, nil), nil
+
+	return nil
+}
+
+func (m *Manager) setWriter(cmd *exec.Cmd) {
+	if m.output != nil {
+		cmd.Stdout = m.output
+		cmd.Stderr = m.output
+	}
 }
 
 // Regular expressions.
@@ -111,11 +116,12 @@ var (
 // Will return an empty string if no version is found.
 func (m *Manager) Version(ctx context.Context) (string, error) {
 	cmd, args := m.buildCmd("-Z")
-	data, err := m.exec(ctx, cmd, args...)
+	data := &bytes.Buffer{}
+	err := m.execWriter(ctx, cmd, data, args...)
 	if err != nil {
 		return "", err
 	}
-	for _, match := range reVersion.FindAllString(string(data), -1) {
+	for _, match := range reVersion.FindAllString(string(data.Bytes()), -1) {
 		return match, nil
 	}
 	return "", nil
@@ -129,7 +135,8 @@ func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, 
 	commands = append(commands, "-LOCK", db)
 
 	cmd, args := m.buildCmd(commands...)
-	data, err := m.exec(ctx, cmd, args...)
+	data := &bytes.Buffer{}
+	err := m.execWriter(ctx, cmd, data, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -137,7 +144,7 @@ func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, 
 		return 0, nil
 	}
 
-	sData := strings.TrimSpace(string(data))
+	sData := strings.TrimSpace(string(data.Bytes()))
 
 	size, err := strconv.Atoi(sData)
 	if err != nil {
@@ -148,7 +155,7 @@ func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, 
 
 func (m *Manager) Unlock(ctx context.Context, db string) error {
 	cmd, args := m.buildCmd("-UNLOCK", db)
-	_, err := m.exec(ctx, cmd, args...)
+	err := m.exec(ctx, cmd, args...)
 	if err != nil {
 		return err
 	}
@@ -157,7 +164,7 @@ func (m *Manager) Unlock(ctx context.Context, db string) error {
 
 func (m *Manager) Fixup(ctx context.Context, db string) error {
 	cmd, args := m.buildCmd("-FIXUP", db)
-	_, err := m.exec(ctx, cmd, args...)
+	err := m.exec(ctx, cmd, args...)
 	if err != nil {
 		return err
 	}
@@ -166,7 +173,7 @@ func (m *Manager) Fixup(ctx context.Context, db string) error {
 
 func (m *Manager) Backup(ctx context.Context, level Level, db string, file string) error {
 	cmd, args := m.buildCmd("-BACKUP", level, db, file)
-	_, err := m.exec(ctx, cmd, args...)
+	err := m.exec(ctx, cmd, args...)
 	if err != nil {
 		return err
 	}
@@ -175,7 +182,7 @@ func (m *Manager) Backup(ctx context.Context, level Level, db string, file strin
 
 func (m *Manager) Restore(ctx context.Context, db string, files ...string) error {
 	cmd, args := m.buildCmd("-RESTORE", db, files)
-	_, err := m.exec(ctx, cmd, args...)
+	err := m.exec(ctx, cmd, args...)
 	if err != nil {
 		return err
 	}
@@ -184,7 +191,7 @@ func (m *Manager) Restore(ctx context.Context, db string, files ...string) error
 
 func (m *Manager) BackupTo(ctx context.Context, level Level, db string, w io.Writer) error {
 	cmd, args := m.buildCmd("-BACKUP", level, db, "stdout")
-	_, err := m.execWriter(ctx, cmd, w, args...)
+	err := m.execWriter(ctx, cmd, w, args...)
 	if err != nil {
 		return err
 	}
