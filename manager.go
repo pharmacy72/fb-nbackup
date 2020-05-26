@@ -30,13 +30,19 @@ type Manager struct {
 	outputErr         io.Writer
 }
 
-type executer func(context.Context, string, ...string) error
+type executer interface {
+	exec(ctx context.Context, commandLine string, args ...string) error
+	execww(ctx context.Context, commandLine string, w io.Writer, args ...string) error
+}
 
-var _ Backuper = (*Manager)(nil)
+var (
+	_ Backuper = (*Manager)(nil)
+	_ executer = (*Manager)(nil)
+)
 
 func NewManager(opts ...Option) *Manager {
 	manager := &Manager{}
-	manager.executer = manager.exec
+	manager.executer = manager
 	for _, option := range append(DefaultOptions, opts...) {
 		option(manager)
 	}
@@ -87,7 +93,7 @@ func (m *Manager) exec(ctx context.Context, commandLine string,
 	return nil
 }
 
-func (m *Manager) execWriter(ctx context.Context, commandLine string, w io.Writer,
+func (m *Manager) execww(ctx context.Context, commandLine string, w io.Writer,
 	args ...string) error {
 	cmd := exec.CommandContext(ctx, commandLine, args...)
 	cmd.Stdout = w
@@ -117,7 +123,7 @@ var (
 func (m *Manager) Version(ctx context.Context) (string, error) {
 	cmd, args := m.buildCmd("-Z")
 	data := &bytes.Buffer{}
-	err := m.execWriter(ctx, cmd, data, args...)
+	err := m.execww(ctx, cmd, data, args...)
 	if err != nil {
 		return "", err
 	}
@@ -136,7 +142,7 @@ func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, 
 
 	cmd, args := m.buildCmd(commands...)
 	data := &bytes.Buffer{}
-	err := m.execWriter(ctx, cmd, data, args...)
+	err := m.execww(ctx, cmd, data, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -191,7 +197,7 @@ func (m *Manager) Restore(ctx context.Context, db string, files ...string) error
 
 func (m *Manager) BackupTo(ctx context.Context, level Level, db string, w io.Writer) error {
 	cmd, args := m.buildCmd("-BACKUP", level, db, "stdout")
-	err := m.execWriter(ctx, cmd, w, args...)
+	err := m.execww(ctx, cmd, w, args...)
 	if err != nil {
 		return err
 	}
