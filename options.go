@@ -16,6 +16,8 @@ type Credential struct {
 	PasswordFromFile string
 }
 
+var _ Argument = (*Credential)(nil)
+
 // ToArgument implements Argument
 func (c *Credential) ToArgument() []string {
 	var args []string
@@ -34,7 +36,7 @@ func (c *Credential) ToArgument() []string {
 // Nbackup default options
 var DefaultOptions = []Option{
 	WithDirect(false),
-	WithTriggers(),
+	WithoutTriggers(true),
 	WithWriter(os.Stdout),
 }
 
@@ -66,17 +68,10 @@ func WithDirect(use bool) Option {
 	}
 }
 
-// WithoutTriggers Do not run databases triggers
-func WithoutTriggers() Option {
+// WithoutTriggers Run databases triggers
+func WithoutTriggers(trigger bool) Option {
 	return func(m *Manager) {
-		m.noDBTriggers = true
-	}
-}
-
-// WithTriggers Run databases triggers
-func WithTriggers() Option {
-	return func(m *Manager) {
-		m.noDBTriggers = false
+		m.noDBTriggers = trigger
 	}
 }
 
