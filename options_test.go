@@ -16,17 +16,20 @@ func TestCredentialToArgument(t *testing.T) {
 	var cred Credential
 	f.Fuzz(&cred)
 	args := cred.ToArgument()
-	assert.Len(t, args, 8)
+	count := 0
 	check := func(name, arg string) {
 		if arg != "" {
 			assert.Contains(t, args, name)
 			assert.Contains(t, args, arg)
+			count++
 		}
 	}
 	check("-USER", cred.User)
 	check("-ROLE", cred.Role)
 	check("-PASSWORD", cred.Password)
 	check("-FETCH_PASSWORD", cred.PasswordFromFile)
+	assert.Len(t, args, count*2)
+
 }
 
 func TestOption(t *testing.T) {
