@@ -1,5 +1,7 @@
 package fb_nbackup
 
+//go:generate mockgen -source=manager.go -destination=mock/executer.go executer
+
 import (
 	"bytes"
 	"context"
@@ -31,8 +33,8 @@ type Manager struct {
 }
 
 type executer interface {
-	exec(ctx context.Context, commandLine string, args ...string) error
-	execww(ctx context.Context, commandLine string, w io.Writer, args ...string) error
+	Exec(ctx context.Context, commandLine string, args ...string) error
+	ExecWithWriter(ctx context.Context, commandLine string, w io.Writer, args ...string) error
 }
 
 var (
@@ -89,7 +91,7 @@ func (m *Manager) buildCmd(args ...interface{}) (string, []string) {
 	return cmdParts[0], append(cmdParts[1:], argsParsed...)
 }
 
-func (m *Manager) exec(ctx context.Context, commandLine string,
+func (m *Manager) Exec(ctx context.Context, commandLine string,
 	args ...string) error {
 	cmd := exec.CommandContext(ctx, commandLine, args...)
 	m.setWriter(cmd)
@@ -100,7 +102,7 @@ func (m *Manager) exec(ctx context.Context, commandLine string,
 	return nil
 }
 
-func (m *Manager) execww(ctx context.Context, commandLine string, w io.Writer,
+func (m *Manager) ExecWithWriter(ctx context.Context, commandLine string, w io.Writer,
 	args ...string) error {
 	cmd := exec.CommandContext(ctx, commandLine, args...)
 	cmd.Stdout = w
@@ -130,7 +132,7 @@ var (
 func (m *Manager) Version(ctx context.Context) (string, error) {
 	cmd, args := m.buildCmd("-Z")
 	data := &bytes.Buffer{}
-	err := m.execww(ctx, cmd, data, args...)
+	err := m.executer.ExecWithWriter(ctx, cmd, data, args...)
 	if err != nil {
 		return "", err
 	}
@@ -149,7 +151,7 @@ func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, 
 
 	cmd, args := m.buildCmd(commands...)
 	data := &bytes.Buffer{}
-	err := m.execww(ctx, cmd, data, args...)
+	err := m.executer.ExecWithWriter(ctx, cmd, data, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -168,7 +170,7 @@ func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, 
 
 func (m *Manager) Unlock(ctx context.Context, db string) error {
 	cmd, args := m.buildCmd("-UNLOCK", db)
-	err := m.exec(ctx, cmd, args...)
+	err := m.executer.Exec(ctx, cmd, args...)
 	if err != nil {
 		return err
 	}
@@ -177,7 +179,7 @@ func (m *Manager) Unlock(ctx context.Context, db string) error {
 
 func (m *Manager) Fixup(ctx context.Context, db string) error {
 	cmd, args := m.buildCmd("-FIXUP", db)
-	err := m.exec(ctx, cmd, args...)
+	err := m.executer.Exec(ctx, cmd, args...)
 	if err != nil {
 		return err
 	}
@@ -186,7 +188,7 @@ func (m *Manager) Fixup(ctx context.Context, db string) error {
 
 func (m *Manager) Backup(ctx context.Context, level Level, db string, file string) error {
 	cmd, args := m.buildCmd("-BACKUP", level, db, file)
-	err := m.exec(ctx, cmd, args...)
+	err := m.executer.Exec(ctx, cmd, args...)
 	if err != nil {
 		return err
 	}
@@ -195,7 +197,7 @@ func (m *Manager) Backup(ctx context.Context, level Level, db string, file strin
 
 func (m *Manager) Restore(ctx context.Context, db string, files ...string) error {
 	cmd, args := m.buildCmd("-RESTORE", db, files)
-	err := m.exec(ctx, cmd, args...)
+	err := m.executer.Exec(ctx, cmd, args...)
 	if err != nil {
 		return err
 	}
@@ -204,7 +206,7 @@ func (m *Manager) Restore(ctx context.Context, db string, files ...string) error
 
 func (m *Manager) BackupTo(ctx context.Context, level Level, db string, w io.Writer) error {
 	cmd, args := m.buildCmd("-BACKUP", level, db, "stdout")
-	err := m.execww(ctx, cmd, w, args...)
+	err := m.executer.ExecWithWriter(ctx, cmd, w, args...)
 	if err != nil {
 		return err
 	}

@@ -81,3 +81,9 @@ func WithCommandPath(s string) Option {
 		m.command = s
 	}
 }
+
+func withExecuter(exec executer) Option {
+	return func(m *Manager) {
+		m.executer = exec
+	}
+}

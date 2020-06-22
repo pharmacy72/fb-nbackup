@@ -1,6 +1,11 @@
 package fb_nbackup
 
 import (
+	"context"
+	"errors"
+	mock_fb_nbackup "fb-nbackup/mock"
+	"github.com/golang/mock/gomock"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -57,4 +62,43 @@ func TestParseArguments(t *testing.T) {
 			assert.EqualError(t, err, test.Err)
 		}
 	}
+}
+
+func TestManager_Version(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	executer := mock_fb_nbackup.NewMockexecuter(ctrl)
+
+	manager := NewManager(
+		WithCommandPath("cmd"),
+		withExecuter(executer))
+
+	errWant := errors.New("error exec")
+	executer.EXPECT().ExecWithWriter(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(errWant)
+	_, err := manager.Version(ctx)
+	assert.EqualError(t, err, errWant.Error())
+
+	executer.EXPECT().ExecWithWriter(ctx, "cmd", gomock.Any(), "-Z")
+	got, err := manager.Version(ctx)
+	assert.NoError(t, err)
+	assert.Empty(t, got)
+
+	executer.EXPECT().ExecWithWriter(ctx, "cmd", gomock.Any(), "-Z").DoAndReturn(
+		func(ctx context.Context, commandLine string, w io.Writer, args ...string) error {
+			w.Write([]byte(`1.2.3.4`))
+			return nil
+		})
+	got, err = manager.Version(ctx)
+	assert.NoError(t, err)
+	assert.Empty(t, got)
+
+	executer.EXPECT().ExecWithWriter(ctx, "cmd", gomock.Any(), "-Z").DoAndReturn(
+		func(ctx context.Context, commandLine string, w io.Writer, args ...string) error {
+			w.Write([]byte(`nbackup version:V3.0.5.33220`))
+			return nil
+		})
+	got, err = manager.Version(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, "V3.0.5.33220", got)
 }
