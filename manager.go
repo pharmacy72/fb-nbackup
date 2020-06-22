@@ -49,32 +49,39 @@ func NewManager(opts ...Option) *Manager {
 	return manager
 }
 
-func parseArguments(args ...interface{}) []string {
-	parseArg := func(arg interface{}) []string {
+func parseArguments(args ...interface{}) ([]string, error) {
+	parseArg := func(arg interface{}) ([]string, error) {
 		switch v := arg.(type) {
 		case string:
-			return []string{v}
+			return []string{v}, nil
 		case []string:
-			return v
+			return v, nil
 		case Argument:
-			return v.ToArgument()
+			return v.ToArgument(), nil
 		default:
-			panic(fmt.Errorf("%w: %T", ErrUnknownArgumentType, arg))
+			return nil, fmt.Errorf("%w: %T", ErrUnknownArgumentType, arg)
 		}
 	}
 	result := make([]string, 0)
 	for _, arg := range args {
-		result = append(result, parseArg(arg)...)
+		args, err := parseArg(arg)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, args...)
 	}
-	return result
+	return result, nil
 }
 
 func (m *Manager) buildCmd(args ...interface{}) (string, []string) {
 	if m.credential != nil {
 		args = append([]interface{}{m.credential}, args...)
 	}
-	argsParsed := parseArguments(args...)
-
+	argsParsed, err := parseArguments(args...)
+	if err != nil {
+		//FIXME: return error
+		panic(err)
+	}
 	if len(m.command) == 0 {
 		return defaultCommand, argsParsed
 	}
