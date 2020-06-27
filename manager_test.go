@@ -189,7 +189,7 @@ func TestManager_Lock(t *testing.T) {
 
 	executer.EXPECT().ExecWithWriter(ctx, "cmd", gomock.Any(), "-SIZE", "-LOCK", db).DoAndReturn(
 		func(ctx context.Context, commandLine string, w io.Writer, args ...string) error {
-			w.Write([]byte(`abc`))
+			w.Write([]byte(`abc`)) // nolint: errcheck
 			return nil
 		})
 	_, err = manager.Lock(ctx, db, true)
@@ -218,7 +218,7 @@ func TestManager_Version(t *testing.T) {
 
 	executer.EXPECT().ExecWithWriter(ctx, "cmd", gomock.Any(), "-Z").DoAndReturn(
 		func(ctx context.Context, commandLine string, w io.Writer, args ...string) error {
-			w.Write([]byte(`1.2.3.4`))
+			w.Write([]byte(`1.2.3.4`)) // nolint: errcheck
 			return nil
 		})
 	got, err = manager.Version(ctx)
@@ -227,7 +227,7 @@ func TestManager_Version(t *testing.T) {
 
 	executer.EXPECT().ExecWithWriter(ctx, "cmd", gomock.Any(), "-Z").DoAndReturn(
 		func(ctx context.Context, commandLine string, w io.Writer, args ...string) error {
-			w.Write([]byte(`nbackup version:V3.0.5.33220`))
+			w.Write([]byte(`nbackup version:V3.0.5.33220`)) // nolint: errcheck
 			return nil
 		})
 	got, err = manager.Version(ctx)

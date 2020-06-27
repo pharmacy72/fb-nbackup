@@ -29,7 +29,6 @@ type Manager struct {
 	credential        *Credential
 	executer          executer
 	output            io.Writer
-	outputErr         io.Writer
 }
 
 type executer interface {
@@ -136,7 +135,7 @@ func (m *Manager) Version(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	for _, match := range reVersion.FindAllString(string(data.Bytes()), -1) {
+	for _, match := range reVersion.FindAllString(data.String(), -1) {
 		return match, nil
 	}
 	return "", nil
@@ -159,7 +158,7 @@ func (m *Manager) Lock(ctx context.Context, db string, returnSize bool) (int64, 
 		return 0, nil
 	}
 
-	sData := strings.TrimSpace(string(data.Bytes()))
+	sData := strings.TrimSpace(data.String())
 
 	size, err := strconv.Atoi(sData)
 	if err != nil {
