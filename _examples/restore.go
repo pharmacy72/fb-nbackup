@@ -10,7 +10,7 @@ import (
 
 func main() {
 	manager := nbackup.NewManager(
-		nbackup.WithCommandPath("/usr/bin/docker exec -w /backup firebird /usr/local/firebird/bin/nbackup"),
+		nbackup.WithCommandPath("/usr/bin/docker exec -w /backup nbackup_fb /usr/local/firebird/bin/nbackup"),
 		nbackup.WithCredential(&nbackup.Credential{
 			User:     "fbuser",
 			Password: "023RsdTf4UI123",

@@ -11,7 +11,7 @@ import (
 func main() {
 	//use: go run _example/backup2stdout.go > level0.fbk
 	manager := nbackup.NewManager(
-		nbackup.WithCommandPath("/usr/bin/docker exec -w /backup firebird /usr/local/firebird/bin/nbackup"),
+		nbackup.WithCommandPath("/usr/bin/docker exec -w /backup nbackup_fb /usr/local/firebird/bin/nbackup"),
 		nbackup.WithCredential(&nbackup.Credential{
 			User:     "fbuser",
 			Password: "023RsdTf4UI123",

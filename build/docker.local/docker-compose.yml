@@ -1,0 +1,13 @@
+version: '3.3'
+services:
+  fb:
+    container_name: nbackup_fb
+    image: jacobalberty/firebird:3.0
+    environment:
+      - FIREBIRD_PASSWORD=023RsdTf4UI123
+      - FIREBIRD_USER=fbuser
+      - FIREBIRD_DATABASE=NBEXAMPLE
+    volumes:
+      - type: bind
+        source: ../../backup
+        target: /backup
