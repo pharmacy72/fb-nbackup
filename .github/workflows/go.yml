@@ -11,10 +11,10 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Run golangci-lint
-      uses: actions-contrib/golangci-lint@v1
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run golangci-lint
+        uses: actions-contrib/golangci-lint@v1
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -29,26 +29,43 @@ jobs:
           go-version: ${{ matrix.go }}
       - name:
         run: go test -v -covermode=count
+  functest:
+    runs-on: ubuntu-latest
+    name: Functional test
+    services:
+      firebird:
+        image: jacobalberty/firebird:3.0
+        env:
+          FIREBIRD_PASSWORD: 023RsdTf4UI123
+          FIREBIRD_USER: fbuser
+          FIREBIRD_DATABASE: NBEXAMPLE
+        volumes:
+          - /backup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Functional test
+        run: go test -v --tags=functest -run ^TestFunctional\$
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.13
-      id: go
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+        id: go
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
 
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
-        fi
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+          if [ -f Gopkg.toml ]; then
+              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+              dep ensure
+          fi
 
-    - name: Build
-      run: go build -v .
+      - name: Build
+        run: go build -v .
