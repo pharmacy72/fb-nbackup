@@ -41,6 +41,8 @@ jobs:
           FIREBIRD_DATABASE: NBEXAMPLE
         volumes:
           - /backup
+        options:
+          name: nbackup_fb
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
